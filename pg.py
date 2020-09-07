@@ -31,5 +31,14 @@ do_crossover = 0.0
 best_children_gen = []
 proportion_best_children = []
 
-
+# Tree characteristics
+operator = "Operator"
+constant = "Constant"
+variable = "Variable"
+functions = {'add': 1, 'sub': 2, 'mul': 3, 'div': 4, 'sen': 5, 'coss': 6}
+variables = {'x': 1}
+variables_size = len(variables)
+functions_size = 4
+depth_max = 6
+depth_min = 2
 
