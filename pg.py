@@ -2,13 +2,13 @@
 from copy import deepcopy
 from random import randint, random
 import math
+import logging
 import numpy as np
 import matplotlib.pyplot as plot
 
 # Constants used to the experimental analysis of the PG
 executions = 10
 depth_individual = 7
-min_depth_individual = 1
 alfa_crossover = 0.9
 beta_mutation = 0.05
 tournament_size = 2
@@ -42,6 +42,11 @@ interval_constants = range(-10, 10)
 functions_size = 4
 depth_max = 6
 depth_min = 2
+
+# Individual characteristics
+min_depth_individual = 1
+max_depth_individual = 2
+index_individual = 4
 
 
 class Node:
@@ -103,7 +108,7 @@ class Node:
                     else:
                         return self
 
-    def mutation(self, max_depth, index):
+    def tree_mutation(self, max_depth, index):
         type_mutation = randint(0, 2)
         if type_mutation == 0:  # Mutate into a variable
             self.type = variable
@@ -123,20 +128,74 @@ class Node:
     def swap_subtree(self, b):  # Swap between two nodes
         self.__dict__, b.__dict__ = b.__dict__, self.__dict__
 
+    def print_tree(self, level):
+        string_tree = ""
+        if self.type == variable:
+            string_tree += "x" + str(self.value)
+        elif self.type == operator:
+            string_tree += str(get_operator(self.value))
+        else:
+            string_tree += str(self.value)
+        string_tree += "\n"
+        if self.leaf_left is not None:
+            string_tree += "Left Node" + str(self.leaf_left.height) + " -> " + self.leaf_left.print_tree(level + 1)
+        if self.leaf_right is not None:
+            string_tree += "Right Node" + str(self.leaf_right.height) + " -> " + self.leaf_right.print_tree(level + 1)
 
-def change_subtree(max_depth=depth_max, min_depth=depth_min, variables_range=variables_size, depth=0):
-    if depth == max_depth:
-        return node(variables_range, depth)
+
+class Individual:
+    def __init__(self):
+        self.tree = tree(max_depth_individual, min_depth_individual, index_individual)
+        self.max_depth = max_depth_individual
+        self.min_depth = min_depth_individual
+        self.index = index_individual
+        self.fitness = None
+
+    def fitness_individual(self, values, fit):
+        try:
+            self.fitness = fit(self, values)
+        except Exception as e:
+            logging.exception(e)
+
+    def mutation_individual(self):
+        alfa = random()
+        if alfa < beta_mutation:
+            depth = rand_index(1, self.max_depth)
+            node_mutate = self.tree.subtree(depth)
+            node_mutate.tree_mutation(self.index, self.max_depth)
+
+    def crossover_individual(self, parent):
+        alfa = random()
+        if alfa <= alfa_crossover:
+            depth = rand_index(1, self.max_depth)
+            first_parent = deepcopy(self)
+            snd_parent = deepcopy(parent)
+
+            a = first_parent.tree.subtree(depth)
+            b = snd_parent.tree.subtree(depth)
+
+            Node.swap_subtree(a, b)
+            return a, b
+        else:
+            return None, None
+
+    def print_individual(self):
+        return "Tree - {}".format(self.print_tree(0), end="\nFitness - {}".format(str(self.fitness)))
+
+
+def tree(depth=0):
+    if depth == depth_max:
+        return node(variables_size, depth)
     else:
         type_nodo = randint(0, 1)
-        if type_nodo == 0 and min_depth <= depth < max_depth:
-            return node(variables_range, depth)
+        if type_nodo == 0 and depth_min <= depth < depth_max:
+            return node(variables_size, depth)
         else:
             operation = randint(1, functions_size)
-            left = change_subtree(max_depth, min_depth, variables_size, depth + 1)
-            right = change_subtree(max_depth, min_depth, variables_size, depth + 1)
-            tree = Node(operator, operation, depth, left, right)
-            return tree
+            left = tree(depth_max, depth_min, variables_size, depth + 1)
+            right = tree(depth_max, depth_min, variables_size, depth + 1)
+            format_tree = Node(operator, operation, depth, left, right)
+            return format_tree
 
 
 def node(index, depth):  # Return a new node, who will be const or var
@@ -147,9 +206,25 @@ def node(index, depth):  # Return a new node, who will be const or var
         return Node(constant, random(), depth)
 
 
+def get_operator(value, collection):
+    for k, v in functions.items():
+        if v == value:
+            return k
+
+
 def rand_index(a, b):
     if b < a:
         return randint(b, a)
     return randint(a, b)
 
+
+def fitness_calculator(individual, values):
+    abs_error = 0.0
+    index = len(values[0])
+    for v in values:
+        fitness_individual = individual.tree.evaluation(values[:index - 1])
+        # The last index in the list is the f(x) himself
+        expected_fitness = values[index - 1]
+        abs_error += np.abs(fitness_individual - expected_fitness)
+        return abs_error
 
