@@ -1,0 +1,6 @@
+Variáveis analisadas: 50
+Tamanho da População: 10
+Probabilidade - Crossover: 0.9
+Probabilidade - Mutação: 0.05
+Tamanho - Torneio: 2
+Geração > Melhor Fitness > Fitness Médio > Melhor Indivíduo
