@@ -5,19 +5,19 @@ import math
 import logging
 import numpy as np
 import matplotlib.pyplot as plot
-
-# import sys
+from collections import OrderedDict
 
 # Constants used to the experimental analysis of the PG
-executions = 10
+executions = 30
 depth_individual = 7
-alfa_crossover = 0.9
-beta_mutation = 0.05
+alfa_crossover = 0.6
+beta_mutation = 0.3
 tournament_size = 2
-population_size = 10
+population_size = 3500
 elite_individuals = 2
-generations = 20
+generations = 100
 optimal_fitness = 0.0
+write_count = 0
 
 # Variables used to present the results of the PG
 best_individual = None
@@ -25,15 +25,22 @@ best_fitness = 0.0
 worst_fitness = 0.0
 average_fitness = 0.0
 
+population = []
 best_evolution = []
 average_evolution = []
 worst_evolution = []
-children_evolution = []
+
+children_best_evolution = []
+children_worst_evolution = []
+diversity = []
 
 last_generation = 0.0
 crossover_count = 0
 number_best_children = 0
+number_worst_children = 0
 proportion_best_children = 0
+proportion_worst_children = 0
+same_individuals = 0
 number_data = 1
 
 # Tree characteristics
@@ -45,27 +52,29 @@ functions_size = len(functions)
 variables = {'x': 1}
 variables_size = len(variables)
 interval_constants = range(-10, 10)
-depth_max = 6
+depth_max = 7
 depth_min = 2
 
 # Individual characteristics
 min_depth_individual = 1
 max_depth_individual = 2
-index_individual = 4
+
+# Folder Tests
+folder = str("tests_pop_" + str(population_size) + "_gen_" + str(generations))
 
 
 class Node:
-    def __init__(self, node_type, value, height, leaf_left=None, leaf_right=None):
-        self.type = node_type
+    def __init__(self, no, value, height, leaf_left=None, leaf_right=None):
+        self.type = no
         self.value = value
         self.height = height
         self.leaf_left = leaf_left
-        if node_type != operator or value < 5:
+        if no == operator and 5 <= value <= 6:
+            self.leaf_right = Node(constant, 0.0, height + 1)
             # Used in right leaves with sen or cos values, 'cause they need a constant after showed
             # (i.e we don't have sen + 2, just sen 2)
-            self.leaf_right = leaf_right
         else:
-            self.leaf_right = Node(constant, 0.0, height + 1)
+            self.leaf_right = leaf_right
 
     def evaluation(self, values):
         if self.type == constant:
@@ -99,19 +108,17 @@ class Node:
             if side == 0:
                 if self.leaf_left is not None:
                     return self.leaf_left.subtree(depth)
+                elif self.leaf_right is not None:
+                    return self.leaf_right.subtree(depth)
                 else:
-                    if self.leaf_right is not None:
-                        return self.leaf_right.subtree(depth)
-                    else:
-                        return self
+                    return self
             else:
                 if self.leaf_right is not None:
                     return self.leaf_right.subtree(depth)
+                elif self.leaf_left is not None:
+                    return self.leaf_left.subtree(depth)
                 else:
-                    if self.leaf_left is not None:
-                        return self.leaf_left.subtree(depth)
-                    else:
-                        return self
+                    return self
 
     def swap_subtree(self, b):  # Swap between two nodes
         self.__dict__, b.__dict__ = b.__dict__, self.__dict__
@@ -133,8 +140,14 @@ class Node:
                 new_tree = tree(self.height, '')
                 Node.swap_subtree(self, new_tree)
 
-    def print_tree(self, level):
+    def print_tree(self, level=0):
         str_tree = '  ' * level
+
+        if level == 0:
+            str_tree += "root: "
+        else:
+            str_tree.replace("root: ", "")
+
         if self.type == variable:
             str_tree += "x" + str(self.value)
         elif self.type == operator:
@@ -142,20 +155,20 @@ class Node:
         else:
             str_tree += str(f'{self.value:.4g}')
 
+        str_tree += "\n"
+
         if self.leaf_left is not None:
-            str_tree += self.leaf_left.print_tree(level + 1)
+            str_tree += " Nó esquerdo - Altura " + str(self.height) + ": " + self.leaf_left.print_tree(level + 1)
         if self.leaf_right is not None:
-            str_tree += self.leaf_right.print_tree(level + 1)
+            str_tree += " Nó direito - Altura " + str(self.height) + ":" + self.leaf_right.print_tree(level + 1)
 
         return str_tree
 
 
 class Individual:
-    def __init__(self, method):
+    def __init__(self, id, method=False):
         self.tree = tree(max_depth_individual, method)
-        self.max_depth = max_depth_individual
-        self.min_depth = min_depth_individual
-        self.index = index_individual
+        self.id = id
         self.fitness = None
 
     def fitness_individual(self, values):
@@ -167,14 +180,14 @@ class Individual:
     def mutation_individual(self):
         alfa = random()
         if alfa < beta_mutation:
-            depth = rand_index(1, self.max_depth)
+            depth = rand_index(1, depth_max)
             node_mutate = self.tree.subtree(depth)
-            node_mutate.tree_mutation(self.index, self.max_depth)
+            node_mutate.tree_mutation(self.id, depth_max)
 
     def crossover_individual(self, parent):
         alfa = random()
         if alfa <= alfa_crossover:
-            depth = rand_index(1, self.max_depth)
+            depth = rand_index(1, depth_max)
             first_parent = deepcopy(self)
             snd_parent = deepcopy(parent)
 
@@ -189,7 +202,7 @@ class Individual:
             return None, None
 
     def print_individual(self):
-        string_individual = "Tree " + self.tree.print_tree(0) + "\nFitness " + str(self.fitness)
+        string_individual = "Tree: \n" + self.tree.print_tree() + "\nFitness " + str(self.fitness)
         return string_individual
 
 
@@ -244,6 +257,34 @@ def fitness_calculator(individual, values):
         return abs_error
 
 
+def create_population(size):
+    individuals = []
+    for i in range(0, int(size / 2)):
+        new_individual = Individual(i, False)
+        individuals.append(new_individual)
+
+    # Population size needs to always be a pair number
+    for j in range(0, int(size / 2)):
+        new_individual = Individual(j, True)
+        individuals.append(new_individual)
+    return individuals
+
+
+def do_tournament(pop):
+    random_individuals = []
+    n = 0
+    while n < tournament_size:
+        rand_ind = randint(0, (len(pop) - 1))
+        if rand_ind not in random_individuals:
+            random_individuals.append(rand_ind)
+            n += 1
+    tournament = [pop[value] for value in random_individuals]
+
+    # Sorting the tournament list to get the best individual
+    tournament.sort(key=lambda k: k.fitness)
+    return tournament[0]
+
+
 def read_data():
     data = []
     temp = []
@@ -258,63 +299,20 @@ def read_data():
     return data
 
 
-def create_population(size):
-    individuals = []
-    for _ in range(0, int(size / 2)):
-        new_individual = Individual(method='')
-        individuals.append(new_individual)
-    # Population size needs to always be a pair number
-    for _ in range(0, int(size / 2)):
-        new_individual = Individual(method="full")
-        individuals.append(new_individual)
-    return individuals
+def run(exe):
+    global write_count, crossover_count, number_best_children, number_worst_children, last_generation, \
+        number_data, same_individuals, population
 
-
-def do_tournament(population):
-    random_individuals = []
-    tournament = []
-    n = 0
-    while n < tournament_size:
-        rand_ind = rand_index(0, population_size - 1)
-        if rand_ind not in random_individuals:
-            random_individuals.append(rand_ind)
-            n += 1
-    for rand in random_individuals:
-        tournament.append(population[rand])
-
-    # Sorting the tournament list to get the best individual
-    tournament.sort(key=lambda k: k.fitness)
-    return tournament[0]
-
-
-def statistics(population):
-    population_s = sorted(population, key=lambda k: k.fitness)
-    global best_individual, best_fitness, worst_fitness, average_fitness, best_evolution, average_evolution, \
-        worst_evolution, children_evolution, crossover_count, number_best_children, proportion_best_children
-
-    best_fitness = population_s[0].fitness
-    best_individual = population_s[0]
-    worst_fitness = population_s[-1].fitness
-    average_fitness = np.average([k.fitness for k in population_s])
-    if crossover_count > 0.0:
-        proportion_best_children = (number_best_children / (crossover_count * 2.0)) * 100
-
-    best_evolution.append(best_fitness)
-    average_evolution.append(average_fitness)
-    worst_evolution.append(worst_fitness)
-    children_evolution.append(proportion_best_children)
-
-
-def run():
-    global crossover_count, number_best_children, last_generation, number_data
-    number_best_children = 0.0
     last_generation = 0.0
+    same_individuals = 0
+    number_best_children = 0
+    number_worst_children = 0
+
     n = 1
+    string_arquivo = ""
 
     data = read_data()
     number_data = len(data)
-
-    write_output()
 
     population = create_population(population_size)
     for each in population:
@@ -322,14 +320,15 @@ def run():
 
     statistics(population)
 
-    if best_fitness < optimal_fitness:
-        return
-
     while n < generations:
+
         new_population = []
         last_best = deepcopy(best_individual)
 
-        for _ in range(0, int(population_size / 2)):
+        bchild = 0
+        wchild = 0
+
+        for j in range(0, int(population_size / 2)):
             a = do_tournament(population)
             b = do_tournament(population)
 
@@ -339,13 +338,30 @@ def run():
                 for child in [c, d]:
                     child.fitness_individual(data)
                 descent = [c, d, a, b]
-                descent.sort(key=lambda k: k.fitness)
+                descent.sort(key=lambda key: key.fitness)
+
                 if descent[0] == (c or d):
                     number_best_children += 1  # I'm generating better children after crossbreed
+                    bchild += 1
                 if descent[1] == (c or d):
-                    number_best_children += 1
-                if descent[0] or descent[1] not in new_population:
-                    new_population.append(descent[0] or descent[1])
+                    number_best_children += 1  # I'm generating better children after crossbreed
+                    bchild += 1
+
+                fit_ave = (a.fitness + b.fitness) / 2
+                if c.fitness > fit_ave:
+                    number_worst_children += 1  # I'm generating worst children after crossbreed
+                    wchild += 1
+                if d.fitness > fit_ave:
+                    number_worst_children += 1  # I'm generating worst children after crossbreed
+                    wchild += 1
+
+                if descent[0] not in new_population:
+                    new_population.append(descent[0])
+                if descent[1] not in new_population:
+                    new_population.append(descent[1])
+
+        string_arquivo += ("\n" + str(n) + " > " + str(best_fitness) + " > " + str(average_fitness) +
+                           " > " + str(worst_fitness))
 
         for each in new_population:
             each.mutation_individual()
@@ -353,113 +369,268 @@ def run():
         new_population.append(last_best)
         # Using elitism to put the last best individual in the new population
 
+        if best_fitness <= optimal_fitness:
+            for pop in population:
+                if pop.fitness == best_fitness:
+                    print("Find one looking good individual, check out: {}".format(pop.print_individual()), end="")
+                    return
+
         # Complete the population
-        population_r = create_population(population_size - len(new_population))
-        new_population.extend(population_r)
-        evolutionary_chart(best_evolution, average_evolution, worst_evolution, children_evolution)
+        same_individuals = population_size - len(new_population)
+
+        string_arquivo += " > " + str(bchild) + " > " + str(wchild) + " > " + str(same_individuals)
+
+        restant = create_population(same_individuals)
+        new_population.extend(restant)
+
+        # Calculate the fitness of the new population
+        for each in new_population:
+            each.fitness_individual(data)
+
+        statistics(new_population)
+
+        last_generation = n
+
+        population = new_population
+        n += 1
+
+        with open("Tests/circle.txt", "w") as archive:
+            archive.write("Variáveis analisadas: " + str(number_data) + "\n")
+            archive.write("Tamanho da População: " + str(population_size) + "\n")
+            archive.write("Probabilidade - Crossover: " + str(alfa_crossover) + "\n")
+            archive.write("Probabilidade - Mutação: " + str(beta_mutation) + "\n")
+            archive.write("Tamanho - Torneio: " + str(tournament_size) + "\n")
+            archive.write("Geração > Melhor Fitness > Fitness Médio > Pior Fitness > "
+                          "Número de Melhores Filhos > Número de Piores Filhos > Indivíduos Repetidos")
+            archive.write("\n".join(list(OrderedDict.fromkeys(string_arquivo.split("\n")))))
+
+    evolutionary_fitness_chart(best_evolution, average_evolution, worst_evolution, exe, True)
 
 
-def write_output():
-    # Write Output
-    with open("tests/circle.txt", "w") as archive:
-        archive.write("Variáveis analisadas: " + str(number_data) + "\n")
-        archive.write("Tamanho da População: " + str(population_size) + "\n")
-        archive.write("Probabilidade - Crossover: " + str(alfa_crossover) + "\n")
-        archive.write("Probabilidade - Mutação: " + str(beta_mutation) + "\n")
-        archive.write("Tamanho - Torneio: " + str(tournament_size) + "\n")
-        archive.write("Geração > Melhor Fitness > Fitness Médio > Melhor Indivíduo")
+def statistics(pop):
+    population_s = sorted(pop, key=lambda k: k.fitness)
+    global best_fitness, best_individual, worst_fitness, average_fitness, proportion_best_children, \
+        best_evolution, average_evolution, worst_evolution, children_best_evolution, \
+        children_worst_evolution, diversity, crossover_count, number_best_children, number_worst_children, \
+        proportion_worst_children
+
+    best_fitness = population_s[0].fitness
+    best_individual = population_s[0]
+
+    worst_fitness = population_s[-1].fitness
+    average_fitness = np.average([k.fitness for k in population_s])
+
+    if crossover_count > 0.0:
+        proportion_best_children = (number_best_children / (crossover_count * 2.0)) * 100
+    if crossover_count > 0.0:
+        proportion_worst_children = (number_worst_children / (crossover_count * 2.0)) * 100
+    diversity_rate = (same_individuals / generations) * 100
+
+    best_evolution.append(best_fitness)
+    average_evolution.append(average_fitness)
+    worst_evolution.append(worst_fitness)
+    children_best_evolution.append(proportion_best_children)
+    children_worst_evolution.append(proportion_worst_children)
+    diversity.append(diversity_rate)
 
 
-def evolutionary_chart(lb, la, lw, lc):
-    evolution_fig, evolution_ax = plot.subplots(4)
-    evolution_fig.subplots_adjust(hspace=0.2)
-
-    y1 = np.array(lw)
-    y2 = np.array(la)
-    y3 = np.array(lb)
-    y4 = np.array(lc)
-
-    x1 = np.array(range(0, len(lw)))
-    x2 = np.array(range(0, len(la)))
-    x3 = np.array(range(0, len(lb)))
-    x4 = np.array(range(0, len(lc)))
-
-    plot.setp(evolution_ax[0].get_xticklabels(), visible=False)
-    plot.setp(evolution_ax[1].get_xticklabels(), visible=False)
-    plot.setp(evolution_ax[2].get_xticklabels(), visible=False)
-    plot.setp(evolution_ax[1].get_yticklabels(), visible=False)
-    plot.setp(evolution_ax[2].get_yticklabels(), visible=False)
-
-    evolution_ax[0].grid(True, which='both')
-    evolution_ax[1].grid(True, which='both')
-    evolution_ax[2].grid(True, which='both')
-    evolution_ax[3].grid(True, which='both')
-
-    evolution_ax[0].scatter(x4, y4, color='r', s=5.0)
-    evolution_ax[1].scatter(x1, y1, color='y', s=5.0)
-    evolution_ax[2].scatter(x2, y2, color='b', s=5.0)
-    evolution_ax[3].scatter(x3, y3, color='g', s=5.0)
-
-    evolution_fig.savefig("tests/circle" + "_evolution.png")
-    plot.close(evolution_fig)
-
-
-def clear_all_statistics():
-    global best_evolution, worst_evolution, average_evolution, number_best_children
-    best_evolution = []
-    worst_evolution = []
-    average_evolution = []
-    number_best_children = []
-
-
-def result(lb, la, lw, lc):
+def result_fitness(lb, la, lw):
     best = []
     average = []
     worst = []
-    children = []
 
-    ind_best = [[row[r] for row in lb] for r in range(0, generations)]
-    ind_ave = [[row[r] for row in la] for r in range(0, generations)]
-    ind_wor = [[row[r] for row in lw] for r in range(0, generations)]
-    ind_chl = [[row[r] for row in lc] for r in range(0, generations)]
+    temp_best = [[row[i] for row in lb] for i in range(0, generations)]
+    temp_ave = [[row[i] for row in la] for i in range(0, generations)]
+    temp_worst = [[row[i] for row in lw] for i in range(0, generations)]
 
     for gen in range(0, generations):
-        best.append(sum(ind_best[gen]) / executions)
-        average.append(sum(ind_ave[gen]) / executions)
-        worst.append(sum(ind_wor[gen]) / executions)
-        children.append(sum(ind_chl[gen]) / executions)
+        best.append(sum(temp_best[gen]) / executions)
+        average.append(sum(temp_ave[gen]) / executions)
+        worst.append(sum(temp_worst[gen]) / executions)
 
         # Write Output
-    with open("tests/circle" + "_result.txt", "w") as archive:
+    with open("Tests/circle_fitness" + "_result.txt", "w") as archive:
         archive.write("Variáveis analisadas: " + str(number_data) + "\n")
         archive.write("Tamanho da População: " + str(population_size) + "\n")
         archive.write("Probabilidade - Crossover: " + str(alfa_crossover) + "\n")
         archive.write("Probabilidade - Mutação: " + str(beta_mutation) + "\n")
         archive.write("Tamanho - Torneio: " + str(tournament_size) + "\n")
-        archive.write("Média Aritmética das Execuções \n")
-        archive.write("Geração > Melhor Fitness > Fitness Médio > Melhor Novo Indivíduo \n")
+        archive.write("Média das execuções" + "\n")
+        archive.write("Geração > Melhor Fitness > Fitness Médio > Pior Fitness")
         for ind in range(0, generations):
             archive.write("\n" + str(ind + 1) + " > " + str(best[ind]) + " > " + str(average[ind]) +
-                          " > " + str(worst[ind]) + " > " + str(children[ind]))
+                          " > " + str(worst[ind]))
 
-    evolutionary_chart(best, average, worst, children)
+    evolutionary_fitness_chart(best, average, worst, None, False)
+
+
+def result_individuals(lcb, lcw, ld):
+    best = []
+    worst = []
+    div = []
+
+    temp_best = [[row[i] for row in lcb] for i in range(0, generations)]
+    temp_worst = [[row[i] for row in lcw] for i in range(0, generations)]
+    temp_div = [[row[i] for row in ld] for i in range(0, generations)]
+
+    for gen in range(0, generations):
+        best.append(sum(temp_best[gen]) / executions)
+        worst.append(sum(temp_worst[gen]) / executions)
+        div.append(sum(temp_div[gen]) / executions)
+
+        # Write Output
+    with open("Tests/circle_individuals" + "_result.txt", "w") as archive:
+        archive.write("Variáveis analisadas: " + str(number_data) + "\n")
+        archive.write("Tamanho da População: " + str(population_size) + "\n")
+        archive.write("Probabilidade - Crossover: " + str(alfa_crossover) + "\n")
+        archive.write("Probabilidade - Mutação: " + str(beta_mutation) + "\n")
+        archive.write("Tamanho - Torneio: " + str(tournament_size) + "\n")
+        archive.write("Média das execuções" + "\n")
+        archive.write("Geração > Proporção de Filhos Melhores > Proporção de Filhos Piores > Indivíduos Repetidos")
+        for ind in range(0, generations):
+            archive.write("\n" + str(ind + 1) + " > " + str(best[ind]) + " > " + str(worst[ind]) +
+                          " > " + str(div[ind]))
+
+    evolutionary_individuals_chart(best, worst, div)
+
+
+def result_trees(best):
+    with open("Tests/bests.txt", "w") as archive:
+        archive.write("Melhores Indivíduos: " + "\n")
+        for k, b in best.items():
+            archive.write("\n Execução: " + str(k) + "\n" + b + "\n")
+
+
+def evolutionary_fitness_chart(lb, la, lw, exe, check):
+    evolution_fig, evolution_ax = plot.subplots()
+
+    y1 = np.array(lb)
+    y2 = np.array(lw)
+    y3 = np.array(la)
+
+    x1 = np.array(range(0, len(lb)))
+    x2 = np.array(range(0, len(lw)))
+    x3 = np.array(range(0, len(la)))
+
+    lines = plot.plot(x1, y1, x2, y2, x3, y3)
+
+    l1, l2, l3 = lines
+    plot.setp(lines, linestyle="--")
+
+    plot.setp(l1, linewidth=2, color='g')  # best
+    plot.setp(l2, linewidth=1, color='r')  # worst
+    plot.setp(l3, linewidth=1, color='b')  # average
+
+    custom_lines = [l1, l2, l3]
+
+    title = plot.title("Média da Fitness do PG")
+
+    lines_legend = plot.legend(custom_lines, ['Melhor', 'Pior', 'Média'])
+    plot.xlabel("Gerações")
+    plot.ylabel("Fitness")
+
+    plot.setp(title)
+    plot.setp(lines_legend)
+
+    plot.grid(b=True, which='major', color='#666666', linestyle='-')
+    plot.minorticks_on()
+    plot.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+
+    if check:
+        evolution_fig.savefig("Tests/circle" + "_evolution_exec_" + str(exe) + ".png")
+    else:
+        evolution_fig.savefig("Tests/circle" + "_evolution.png")
+
+
+def evolutionary_individuals_chart(lbc, lwc, ld):
+    evolution_fig, evolution_ax = plot.subplots()
+
+    y1 = np.array(lbc)
+    y2 = np.array(lwc)
+    y3 = np.array(ld)
+
+    x1 = np.array(range(0, len(lbc)))
+    x2 = np.array(range(0, len(lwc)))
+    x3 = np.array(range(0, len(ld)))
+
+    lines = plot.plot(x1, y1, x2, y2, x3, y3)
+
+    l1, l2, l3 = lines
+    plot.setp(lines, linestyle="--")
+
+    plot.setp(l1, linewidth=2, color='g')  # best
+    plot.setp(l2, linewidth=1, color='r')  # worst
+    plot.setp(l3, linewidth=1, color='b')  # average
+
+    custom_lines = [l1, l2, l3]
+
+    title = plot.title("Proporção dos Indivíduos no PG")
+    proportions = plot.legend(custom_lines, ['Filhos Melhores', 'Filhos Piores', 'Indivíduos Repetidos'])
+    plot.xlabel("Gerações")
+    plot.ylabel("Porporção")
+
+    plot.setp(title)
+    plot.setp(proportions)
+
+    plot.grid(b=True, which='major', color='#666666', linestyle='-')
+    plot.minorticks_on()
+    plot.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+
+    evolution_fig.savefig("Tests/circle" + "_proportion.png")
+
+
+def clear_all_statistics():
+    global best_evolution, worst_evolution, average_evolution, children_best_evolution, \
+        children_worst_evolution, diversity, population
+    best_evolution = []
+    worst_evolution = []
+    average_evolution = []
+    children_best_evolution = []
+    children_worst_evolution = []
+    diversity = []
+    population = []
 
 
 def main():
     best_all = []
     average_all = []
     worst_all = []
-    children_proportion = []
+
+    children_best = []
+    children_worst = []
+    diversity_all = []
+
+    bests = {}
 
     for i in range(0, executions):
-        run()
+        run(i)
+        menor_fitness = 100
+
+        # Fitness Graphic
         best_all.append(best_evolution)
         average_all.append(average_evolution)
         worst_all.append(worst_evolution)
-        children_proportion.append(number_best_children)
+
+        # Individuals Graphic
+        children_best.append(children_best_evolution)
+        children_worst.append(children_worst_evolution)
+        diversity_all.append(diversity)
+
+        # Write bests trees
+        for ind in best_evolution:
+            if ind < menor_fitness:
+                menor_fitness = ind
+
+        for pop_tree in population:
+            if pop_tree.fitness == menor_fitness:
+                bests[i] = pop_tree.print_individual()
+
         clear_all_statistics()
 
-    result(best_all, average_all, worst_all, children_proportion)
+    # Write Outputs
+    result_fitness(best_all, average_all, worst_all)
+    result_individuals(children_best, children_worst, diversity_all)
+    result_trees(bests)
 
 
 if __name__ == '__main__':
