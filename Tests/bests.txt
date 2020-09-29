@@ -1,0 +1,57 @@
+Melhores Indivíduos: 
+
+ Execução: 0
+Tree: 
+		root: sen
+ Nó esquerdo - Altura 1:   div
+ Nó esquerdo - Altura 2:     sub
+ Nó esquerdo - Altura 3:       cos
+ Nó esquerdo - Altura 4:         x1
+ Nó esquerdo - Altura 5:           5.209
+ Nó direito - Altura 5:          x1
+ Nó direito - Altura 4:        x1
+ Nó direito - Altura 3:      cos
+ Nó esquerdo - Altura 4:         x1
+ Nó direito - Altura 4:        0.8014
+ Nó direito - Altura 2:    x1
+ Nó direito - Altura 1:  -7.804
+
+Fitness 25.69349822457208
+
+ Execução: 14
+Tree: 
+		root: div
+ Nó esquerdo - Altura 2:   mul
+ Nó esquerdo - Altura 3:     -0.5906
+ Nó esquerdo - Altura 4:       -1.679
+ Nó direito - Altura 4:      x1
+ Nó direito - Altura 3:    mul
+ Nó esquerdo - Altura 4:       cos
+ Nó esquerdo - Altura 5:         -1.799
+ Nó direito - Altura 5:        5.675
+ Nó direito - Altura 4:      add
+ Nó esquerdo - Altura 5:         0.1167
+ Nó direito - Altura 5:        div
+ Nó esquerdo - Altura 6:           0.009078
+ Nó direito - Altura 6:          0.8858
+ Nó direito - Altura 2:  x1
+
+Fitness 26.4361871449403
+
+ Execução: 23
+Tree: 
+		root: sen
+ Nó esquerdo - Altura 2:   sub
+ Nó esquerdo - Altura 3:     x1
+ Nó direito - Altura 3:    sen
+ Nó esquerdo - Altura 4:       div
+ Nó esquerdo - Altura 5:         cos
+ Nó esquerdo - Altura 6:           x1
+ Nó direito - Altura 6:          0.493
+ Nó direito - Altura 5:        sen
+ Nó esquerdo - Altura 6:           x1
+ Nó direito - Altura 6:          x1
+ Nó direito - Altura 4:      x1
+ Nó direito - Altura 2:  -9.358
+
+Fitness 25.42348432935961

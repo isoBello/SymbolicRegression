@@ -1,0 +1,115 @@
+Melhores Indivíduos: 
+
+ Execução: 0
+Tree: 
+		root: sen
+ Nó esquerdo - Altura 1:   div
+ Nó esquerdo - Altura 2:     add
+ Nó esquerdo - Altura 3:       add
+ Nó esquerdo - Altura 4:         cos
+ Nó esquerdo - Altura 5:           cos
+ Nó esquerdo - Altura 6:             x1
+ Nó direito - Altura 6:            x1
+ Nó direito - Altura 5:          x1
+ Nó direito - Altura 4:        -0.7819
+ Nó direito - Altura 3:      sen
+ Nó esquerdo - Altura 4:         0.03158
+ Nó direito - Altura 4:        0.6219
+ Nó direito - Altura 2:    x1
+ Nó direito - Altura 1:  -0.304
+
+Fitness 26.467785953508972
+
+ Execução: 1
+Tree: 
+		root: mul
+ Nó esquerdo - Altura 1:   0.03905
+ Nó direito - Altura 1:  div
+ Nó esquerdo - Altura 2:     -1.678
+ Nó direito - Altura 2:    x1
+
+Fitness 26.513727374620117
+
+ Execução: 2
+Tree: 
+		root: sen
+ Nó esquerdo - Altura 0:   div
+ Nó esquerdo - Altura 1:     -0.07035
+ Nó direito - Altura 1:    x1
+ Nó direito - Altura 0:  x1
+
+Fitness 26.636831246449667
+
+ Execução: 5
+Tree: 
+		root: div
+ Nó esquerdo - Altura 0:   div
+ Nó esquerdo - Altura 1:     sen
+ Nó esquerdo - Altura 2:       -0.7795
+ Nó direito - Altura 2:      -0.1574
+ Nó direito - Altura 1:    div
+ Nó esquerdo - Altura 2:       x1
+ Nó direito - Altura 2:      -0.06938
+ Nó direito - Altura 0:  div
+ Nó esquerdo - Altura 1:     -0.4275
+ Nó direito - Altura 1:    sen
+ Nó esquerdo - Altura 2:       0.5303
+ Nó direito - Altura 2:      -0.5698
+
+Fitness 26.53534187289045
+
+ Execução: 6
+Tree: 
+		root: div
+ Nó esquerdo - Altura 0:   div
+ Nó esquerdo - Altura 1:     sub
+ Nó esquerdo - Altura 2:       sub
+ Nó esquerdo - Altura 3:         0.9572
+ Nó direito - Altura 3:        0.05812
+ Nó direito - Altura 2:      cos
+ Nó esquerdo - Altura 3:         x1
+ Nó direito - Altura 3:        0.3598
+ Nó direito - Altura 1:    0.6693
+ Nó direito - Altura 0:  sen
+ Nó esquerdo - Altura 1:     mul
+ Nó esquerdo - Altura 2:       div
+ Nó esquerdo - Altura 3:         x1
+ Nó direito - Altura 3:        0.9327
+ Nó direito - Altura 2:      cos
+ Nó esquerdo - Altura 3:         0.9456
+ Nó direito - Altura 3:        0.5393
+ Nó direito - Altura 1:    x1
+
+Fitness 26.492144845991795
+
+ Execução: 8
+Tree: 
+		root: div
+ Nó esquerdo - Altura 1:   -0.06253
+ Nó direito - Altura 1:  x1
+
+Fitness 26.40921553465577
+
+ Execução: 9
+Tree: 
+		root: sub
+ Nó esquerdo - Altura 0:   mul
+ Nó esquerdo - Altura 1:     x1
+ Nó direito - Altura 1:    add
+ Nó esquerdo - Altura 2:       0.03438
+ Nó direito - Altura 2:      cos
+ Nó esquerdo - Altura 3:         x1
+ Nó direito - Altura 3:        0.5974
+ Nó direito - Altura 0:  div
+ Nó esquerdo - Altura 1:     sen
+ Nó esquerdo - Altura 2:       sen
+ Nó esquerdo - Altura 3:         sen
+ Nó esquerdo - Altura 4:           div
+ Nó esquerdo - Altura 5:             -0.959
+ Nó direito - Altura 5:            x1
+ Nó direito - Altura 4:          0.03562
+ Nó direito - Altura 3:        -0.2356
+ Nó direito - Altura 2:      -0.1708
+ Nó direito - Altura 1:    -0.7658
+
+Fitness 26.05617480473921
